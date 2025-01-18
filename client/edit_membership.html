@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Membership</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h1>Edit Membership</h1>
+        <form id="editMembershipForm">
+            <input type="hidden" name="_csrf" id="_csrf">
+            <div class="mb-3">
+                <label for="nama_membership" class="form-label">Nama Membership</label>
+                <input type="text" class="form-control" id="nama_membership" name="nama_membership" required>
+            </div>
+            <div class="mb-3">
+                <label for="harga" class="form-label">Harga</label>
+                <input type="number" class="form-control" id="harga" name="harga" required>
+            </div>
+            <div class="mb-3">
+                <label for="img" class="form-label">Image</label>
+                <input type="file" class="form-control" id="img" name="img" onchange="changeImage(event)">
+                <img id="currentImg" alt="Current Image" style="margin-top: 10px; max-width: 100px; display: block;">
+            </div>
+            <input type="hidden" id="membershipId" name="membershipId">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const token = localStorage.getItem('authToken'); 
+        let csrfToken = '';
+
+        function changeImage(event) {
+            const file = event.target.files[0];
+            const imgElement = document.getElementById('currentImg'); 
+
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+
+                    imgElement.src = e.target.result;
+                };
+
+                reader.readAsDataURL(file);
+            } else {
+                imgElement.src = 'default_image_url'; 
+            }
+        }
+        async function getCsrfToken() {
+            const response = await fetch('http://localhost:3000/api/csrf-token', {
+                method: 'GET',
+                credentials: 'include',
+                mode :"cors"
+            });
+
+            const data = await response.json();
+            document.getElementById('_csrf').value = data.csrfToken;
+            csrfToken = data.csrfToken;
+        }
+
+        async function loadMembershipData() {
+            const params = new URLSearchParams(window.location.search);
+            const membershipId = params.get('id'); 
+    
+            if (!membershipId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'ID Membership tidak ditemukan'
+                });
+                return;
+            }
+    
+            try {
+                const response = await fetch(`http://localhost:3000/api/singleMembership/${membershipId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include',
+                    mode: 'cors',
+                });
+    
+                const result = await response.json();
+    
+                if (result.success) {
+                    document.getElementById('membershipId').value = membershipId;
+                    document.getElementById('nama_membership').value = result.data.nama_membership;
+                    document.getElementById('harga').value = result.data.harga;
+                    document.getElementById('currentImg').src = result.data.img || 'default_image_url';
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.message
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan saat memuat data membership'
+                });
+            }
+        }
+    
+
+        document.getElementById('editMembershipForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+    
+            const membershipId = document.getElementById('membershipId').value; 
+            const formData = new FormData(event.target); 
+            formData.delete('membershipId');
+    
+            try {
+                const response = await fetch(`http://localhost:3000/api/updateMembership/${membershipId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'XSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'include',
+                    mode: 'cors',
+                    body: formData
+                });
+    
+                const result = await response.json();
+    
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: result.message
+                    }).then(() => {
+                        window.location.href = 'membership.html'; 
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.message
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan saat memperbarui membership'
+                });
+            }
+        });
+    
+        window.onload = () => {
+            getCsrfToken()
+            loadMembershipData();
+        };
+    </script>
+</body>
+</html>

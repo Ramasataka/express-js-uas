@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Membership</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h1>Manage Membership</h1>
+
+        <!-- Button to Open Add Membership Modal -->
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addMembershipModal">Add Membership</button>
+
+        <!-- Membership Table -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama Membership</th>
+                    <th>Harga</th>
+                    <th>Image</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="membershipTableBody">
+                <!-- Dynamic data will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Membership Modal -->
+    <div class="modal fade" id="addMembershipModal" tabindex="-1" aria-labelledby="addMembershipModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addMembershipModalLabel">Add Membership</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMembershipForm">
+                        <input type="hidden" name="_csrf" id="_csrf">
+                        <div class="mb-3">
+                            <label for="nama_membership" class="form-label">Nama Membership</label>
+                            <input type="text" class="form-control" id="nama_membership" name="nama_membership" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="harga" class="form-label">Harga</label>
+                            <input type="number" class="form-control" id="harga" name="harga" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="img" class="form-label">Image</label>
+                            <div class="form-group">
+                                <label for="img">Upload Image</label>
+                                <input type="file" class="form-control" id="img" name="img" onchange="previewImage(event)">
+                            </div>
+                            <img id="preview" src="#" alt="Image Preview" style="display:none; margin-top: 10px; max-width: 100px;">                            
+                            </div>
+                        <button type="submit" class="btn btn-primary">Add Membership</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const token = localStorage.getItem('authToken');  // Ambil token JWT dari localStorage
+        let csrfToken = '';
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function() {
+                const preview = document.getElementById('preview');
+                preview.src = reader.result;
+                preview.style.display = 'block';
+            }
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+        // Ambil CSRF token dari server
+        async function getCsrfToken() {
+            const response = await fetch('http://localhost:3000/api/csrf-token', {
+                method: 'GET',
+                credentials: 'include',
+                mode :"cors"
+            });
+
+            const data = await response.json();
+            document.getElementById('_csrf').value = data.csrfToken;
+            csrfToken = data.csrfToken;
+        }
+
+        // Menampilkan data membership ke dalam tabel
+        async function loadMemberships() {
+            const response = await fetch('http://localhost:3000/api/getMembership', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials : "include"
+            });
+            const result = await response.json();
+            const membershipTableBody = document.getElementById('membershipTableBody');
+            membershipTableBody.innerHTML = '';
+
+            if (result.success) {
+                var i = 1;
+                result.data.forEach(membership => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${i}</td>
+                        <td>${membership.nama_membership}</td>
+                        <td>${membership.harga}</td>
+                        <td><img src="${membership.img}" alt="Image" width="50" height="50"></td>
+                        <td>
+                            <a href="edit_membership.html?id=${membership.id}" class="btn btn-warning btn-sm">Edit</a>
+                            <button class="btn btn-danger btn-sm" onclick="confirmDelete(${membership.id})">Delete</button>
+                        </td>
+                    `;
+                    i++
+                    membershipTableBody.appendChild(row);
+                });
+            }
+        }
+
+        // Menambah membership
+        document.getElementById('addMembershipForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            const response = await fetch('http://localhost:3000/api/postMembership', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'XSRF-TOKEN': csrfToken,  // Menambahkan CSRF Token di header
+                },
+                credentials: 'include',
+                mode: 'cors',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: result.message
+                }).then(() => {
+                    loadMemberships();
+                    document.getElementById('addMembershipModal').modal('hide');
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.message
+                });
+            }
+        });
+
+        // Mengonfirmasi penghapusan membership
+        function confirmDelete(membershipId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This will delete the membership permanently!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteMembership(membershipId);
+                }
+            });
+        }
+
+        // Menghapus membership
+        async function deleteMembership(membershipId) {
+            const response = await fetch(`http://localhost:3000/api/deleteMembership/${membershipId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'XSRF-TOKEN': csrfToken,  // Menambahkan CSRF Token di header
+                },
+                credentials: 'include',
+                mode: 'cors',
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted',
+                    text: result.message
+                }).then(() => {
+                    loadMemberships();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.message
+                });
+            }
+        }
+
+        // Load memberships saat halaman dimuat
+        window.onload = async () => {
+            await getCsrfToken();  // Ambil CSRF Token saat halaman dimuat
+            loadMemberships();
+        };
+    </script>
+</body>
+</html>

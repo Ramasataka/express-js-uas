@@ -1,0 +1,156 @@
+<!-- Halaman Signup -->
+<!-- pakek fetch untuk ngambil token dari server dan pasang disana   -->
+ <!-- contoh <input type="hidden" id="csrf-login-token" name="_csrf" value=""> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: auto; margin: 10px;">
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: 350px; text-align: center;">
+        <h2 style="margin-bottom: 20px;">SIGN UP / REGISTER</h2>
+        <form method="post" id="signup-form" action="http://localhost:3000/signup" enctype="multipart/form-data">
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="email" style="display: block; margin-bottom: 5px; font-weight: bold;">Email</label>
+                <input type="email" id="email" name="email" placeholder="Masukkan email" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 5px; text-align: left;">
+                <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">Password</label>
+                <input type="password" id="password" name="password" placeholder="Masukkan password" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">Nama</label>
+                <input type="text" id="nama" name="nama" placeholder="Masukkan nama" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="notelp" style="display: block; margin-bottom: 5px; font-weight: bold;">No HP</label>
+                <input type="number" id="notelp" name="notelp" placeholder="Masukkan No HP" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="alamatweb" style="display: block; margin-bottom: 5px; font-weight: bold;">Alamat Web</label>
+                <input type="text" id="alamatweb" name="alamatweb" placeholder="Masukkan Alamat Web" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="tempatlahir" style="display: block; margin-bottom: 5px; font-weight: bold;">Tempat Lahir</label>
+                <input type="text" id="tempatlahir" name="tempatlahir" placeholder="Masukkan Temmpat Lahir" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="tanggallahir" style="display: block; margin-bottom: 5px; font-weight: bold;">Tanggal Lahir</label>
+                <input type="date" id="tanggallahir" name="tanggallahir" placeholder="Masukkan Tanggal Lahir" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="nokk" style="display: block; margin-bottom: 5px; font-weight: bold;">No KK</label>
+                <input type="text" id="nokk" name="nokk" placeholder="Masukkan No. KK" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="noktp" style="display: block; margin-bottom: 5px; font-weight: bold;">No KTP</label>
+                <input type="number" id="noktp" name="noktp" placeholder="Masukkan No. KTP" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label for="foto" style="display: block; margin-bottom: 5px; font-weight: bold;">Foto</label>
+                <input type="file" id="foto" name="foto" placeholder="Pilih gambar" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" onchange="previewImage()">
+                <div id="preview-container" style="margin-top: 10px;">
+                    <img id="preview" src="" alt="Preview gambar" style="max-width: 100%; display: none; border: 1px solid #ccc; border-radius: 4px; padding: 5px; margin-top: 10px;">
+                </div>
+            </div>
+            <input type="hidden" id="csrf-login-token" name="_csrf" value="">
+            <button type="submit" style="background-color: #007bff; color: #fff; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px;">SIGN UP</button>
+        </form>
+        <p id="error-message" style="color: red; margin-top: 10px; font-size: 14px;"></p>
+        <p>Kembali ke halaman <a href="index.html">Login</a></p>
+    </div>
+</body>
+</html>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Fetch CSRF token and set it for both forms
+        fetch('http://localhost:3000/api/csrf-token', { credentials: 'include', mode:'cors' })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                const csrfRegisterToken = document.getElementById('csrf-login-token');                
+                csrfRegisterToken.value = data.csrfToken;
+
+            })
+            .catch(error => console.error('Error fetching CSRF token:', error));
+        
+        const form = document.getElementById('signup-form');
+        const errorMessage = document.getElementById('error-message');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+
+            try {
+                const response = await fetch('http://localhost:3000/api/signup', {
+                    method: 'POST',
+                    credentials: 'include',
+                    // body: JSON.stringify(data),
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Success alert
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: result.message,
+                    }).then(function() {
+                        form.reset(); // Reset the form
+                        window.location.href = 'index.html'; // Redirect to index.html
+                    });
+                } else {
+                    // Error alert
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: result.message,
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan saat mengirim data.',
+                });
+            }
+        });
+
+    });
+
+
+    function previewImage() {
+    const fileInput = document.getElementById('foto');
+    const preview = document.getElementById('preview');
+    
+    // Mengambil file yang dipilih
+    const file = fileInput.files[0];
+    
+    // Cek apakah file ada dan memiliki tipe gambar
+    if (file && file.type.startsWith('image')) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';  // Menampilkan gambar setelah dipilih
+        };
+        
+        reader.readAsDataURL(file); // Membaca file gambar
+    } else {
+        preview.style.display = 'none';  // Sembunyikan gambar jika bukan file gambar
+        alert('Tolong pilih file gambar.');
+    }
+}
+// npx http-server -p 5500
+</script>

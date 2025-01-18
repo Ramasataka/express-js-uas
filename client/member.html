@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Area</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    p {
+      color: #666;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome, <span id="username">User</span>!</h1>
+    <p>You are now in the member area. Feel free to explore!</p>
+    <button id="logoutBtn">Logout</button>
+  </div>
+  <script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+            // Check if the authToken cookie exists
+            const getCookie = (name) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+                };
+
+                // Retrieve the authToken cookie
+                const cookiesAuth = getCookie("authToken");
+                console.log(cookiesAuth);
+
+                if (!cookiesAuth) {
+                    window.location.href = 'index.html'; // Redirect to the login page
+                }
+
+            });
+
+    // Handle Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      fetch('http://localhost:3000/api/logout', { method: 'POST', credentials: 'include' })
+        .then(() => {
+          alert('You have been logged out.');
+          window.location.href = 'index.html';
+        });
+    });
+  </script>
+</body>
+</html>
