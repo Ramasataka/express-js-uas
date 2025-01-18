@@ -115,19 +115,19 @@ const signIn = async (req, res) => {
 
             const isAdmin = user.is_admin === 1;
             const role = user.is_admin;
-            const id = user.id;
 
             const tokenPayload = {
                 email: user.email,
                 id: user.id,
+                is_admin : user.is_admin
             };
 
             
             
             // Membuat JWT
             const token = jwt.sign(tokenPayload, process.env.KUNCI_RAHASIA);
-
             res.cookie('authToken', token);
+            res.cookie('role', user.is_admin);
 
             res.status(200).json({
                 success: true,
@@ -143,7 +143,9 @@ const signIn = async (req, res) => {
 
 // Fungsi untuk Logout
 const logout = (req, res) => {
+    console.log(req.cookies)
     res.clearCookie('authToken');
+    res.clearCookie('role');
     res.status(200).json({ success: true, message: 'Logout berhasil!' });
 };
 
