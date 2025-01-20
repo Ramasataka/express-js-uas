@@ -3,8 +3,12 @@ const express = require('express');
 const router = express.Router();
 const authController = require('./controllers/controllerAuth');
 const membershipController = require('./controllers/controllerMembership');
+const userMembershipController = require('./controllers/controllerUserMembership');
+const midtransService = require('./services/midtransService');
 const verifyToken = require('./middleware/verifyToken'); 
 const { upload, setUploadFolder } = require('./utils/uploads');
+const contentController = require('./controllers/controllerContent.js');
+
 
 router.get('/csrf-token', (req, res) => {
     const csrfToken = req.csrfToken();
@@ -26,7 +30,13 @@ router.post('/postMembership', setUploadFolder('membership_photo'),upload.single
 router.put('/updateMembership/:id', setUploadFolder('membership_photo'),upload.single('img'), verifyToken, membershipController.updateMembership )
 router.delete('/deleteMembership/:id', verifyToken, membershipController.deleteMembership);
 
+router.get('/membershipUser', verifyToken,userMembershipController.getMembershipsUser );
 
+router.post('/create-transaction',verifyToken, midtransService.createTransactionToken);
+
+
+router.post('/membership/:id/add-content', setUploadFolder('content_images'), upload.array('images', 10), verifyToken, contentController.addContentToMembership);
+router.get('membership-content/:id', verifyToken, contentController.getContentForMembership);
 
 
 

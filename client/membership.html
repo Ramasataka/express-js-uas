@@ -92,6 +92,7 @@
                 reader.readAsDataURL(file);
             }
         }
+
         // Ambil CSRF token dari server
         async function getCsrfToken() {
             const response = await fetch('http://localhost:3000/api/csrf-token', {
@@ -130,6 +131,9 @@
                         <td>
                             <a href="edit_membership.html?id=${membership.id}" class="btn btn-warning btn-sm">Edit</a>
                             <button class="btn btn-danger btn-sm" onclick="confirmDelete(${membership.id})">Delete</button>
+                            <!-- Button untuk melihat konten membership -->
+                            <a href="membership-content.html?id=${membership.id}" class="btn btn-info btn-sm">Isi Content</a>
+                            <a href="lihat_membership-content.html?id=${membership.id}" class="btn btn-info btn-sm">Isi Content</a>
                         </td>
                     `;
                     i++
@@ -163,6 +167,7 @@
                 }).then(() => {
                     loadMemberships();
                     document.getElementById('addMembershipModal').modal('hide');
+                    window.location.href = `membership-content.html?id=${result.data.id}`;  // Redirect ke halaman konten
                 });
             } else {
                 Swal.fire({
@@ -219,34 +224,36 @@
                 });
             }
         }
+
         const getCookie = (name) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop().split(';').shift();
             return null;
-            };
+        };
 
-            async function checkAdmin() {
-                const authToken = getCookie('authToken');
-                const role = getCookie('role'); // 1 untuk admin, 0 untuk user biasa
+        async function checkAdmin() {
+            const authToken = getCookie('authToken');
+            const role = getCookie('role'); // 1 untuk admin, 0 untuk user biasa
 
-                if (!authToken) {
-                    // Redirect ke halaman login jika tidak ada authToken
-                    window.location.href = '/';
-                    return;
-                }
-
-                if (role !== '1') {
-                    // Redirect ke halaman member jika bukan admin
-                    alert('Access denied: You are not an admin.');
-                    window.location.href = '/member';
-                    return;
-                }
+            if (!authToken) {
+                // Redirect ke halaman login jika tidak ada authToken
+                window.location.href = '/';
+                return;
             }
+
+            if (role !== '1') {
+                // Redirect ke halaman member jika bukan admin
+                alert('Access denied: You are not an admin.');
+                window.location.href = '/member';
+                return;
+            }
+        }
+
         // Load memberships saat halaman dimuat
         window.onload = async () => {
             await getCsrfToken();  // Ambil CSRF Token saat halaman dimuat
-            checkAdmin()
+            checkAdmin();
             loadMemberships();
         };
     </script>
