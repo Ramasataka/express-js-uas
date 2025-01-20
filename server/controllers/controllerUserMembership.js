@@ -4,7 +4,7 @@ const xss = require('xss');
 const path = require('path');
 const db = require('../connection');
 const { enkripsi, dekripsi } = require('../utils/encryption');
-
+//disini perubahan
 const getMembershipsUser = async (req, res) => {
     try {
         const userId = req.user.id;
