@@ -3,22 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Membership Content</title>
+    <title>Lihat Membership Content</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light py-4">
 
-    <div class="container mt-5">
-        <h1>Membership Content</h1>
-        
-        <!-- Membership Content Details -->
-        <div id="membershipContent" class="mt-3">
-            <!-- Dynamic content will be inserted here -->
+    <div class="container">
+        <h1 class="text-center mb-4">Lihat Membership Content</h1>
+
+        <!-- Button to Open Add Content Modal -->
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addContentModal">Add Content</button>
+
+        <!-- Membership Content Table -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Images</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="contentTableBody">
+                <!-- Dynamic content will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Content Modal -->
+    <div class="modal fade" id="addContentModal" tabindex="-1" aria-labelledby="addContentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addContentModalLabel">Add Content</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addContentForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="images" class="form-label">Images</label>
+                            <input type="file" class="form-control" id="images" name="images" multiple required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Content</button>
+                    </form>
+                </div>
+            </div>
         </div>
-        <a href="membership.html" class="btn btn-primary mt-3">Back to Membership List</a>
     </div>
 
     <!-- SweetAlert2 JS -->
@@ -29,55 +71,122 @@
     <script>
         const token = localStorage.getItem('authToken');  // Ambil token JWT dari localStorage
 
-        // Fungsi untuk memuat konten membership berdasarkan ID
-        async function loadMembershipContent() {
+        // Menampilkan data konten membership ke dalam tabel
+        async function loadContent() {
             const urlParams = new URLSearchParams(window.location.search);
             const membershipId = urlParams.get('id');
-
-            if (!membershipId) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No membership ID provided.'
-                });
-                return;
-            }
-
             const response = await fetch(`http://localhost:3000/api/membership-content/${membershipId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
-                credentials: 'include',
-                mode: 'cors'
+                credentials: 'include'
             });
-
             const result = await response.json();
-
-            // Tambahkan log untuk memeriksa respons
-            console.log(result);  // Log respons API
-
-            const membershipContent = document.getElementById('membershipContent');
+            const contentTableBody = document.getElementById('contentTableBody');
+            contentTableBody.innerHTML = '';
 
             if (result.success) {
-                const content = result.data;
-                membershipContent.innerHTML = `
-                    <h3>Title: ${content.title}</h3>
-                    <p><strong>Description:</strong> ${content.description}</p>
-                    <img src="${content.img}" alt="Image" class="img-fluid" style="max-width: 300px;">
-                `;
-            } else {
-                membershipContent.innerHTML = `
-                    <p class="text-danger">Unable to fetch membership content.</p>
-                `;
+                let i = 1;
+                result.data.forEach(content => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${i}</td>
+                        <td>${content.title}</td>
+                        <td>${content.description}</td>
+                        <td>
+                            ${content.images.map(img => `<img src="${img}" alt="Content Image" width="50" height="50">`).join(' ')}
+                        </td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editContent(${content.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteContent(${content.id})">Delete</button>
+                        </td>
+                    `;
+                    i++;
+                    contentTableBody.appendChild(row);
+                });
             }
         }
 
+        // Fungsi untuk menambah konten
+        document.getElementById('addContentForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const urlParams = new URLSearchParams(window.location.search);
+            const membershipId = urlParams.get('id');
 
-        // Memuat konten saat halaman dimuat
-        window.onload = async () => {
-            loadMembershipContent();
-        };
+            const response = await fetch(`http://localhost:3000/api/add-content/${membershipId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: result.message
+                }).then(() => {
+                    loadContent();
+                    document.getElementById('addContentModal').modal('hide');
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.message
+                });
+            }
+        });
+
+        // Fungsi untuk mengedit konten
+        function editContent(contentId) {
+            // Fungsi ini dapat menampilkan modal atau redirect ke halaman lain untuk mengedit konten
+            alert('Edit content with ID ' + contentId);
+        }
+
+        // Fungsi untuk menghapus konten
+        // Fungsi untuk menghapus konten
+    function deleteContent(contentId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This will delete the content permanently!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`http://localhost:3000/api/delete-content/${contentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Deleted!', data.message, 'success');
+                        loadContent(); // Refresh content list
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'An error occurred while deleting the content', 'error');
+                    console.error('Delete error:', error);
+                });
+            }
+        });
+    }
+
+
+        // Load content saat halaman dimuat
+        window.onload = loadContent;
     </script>
 </body>
 </html>

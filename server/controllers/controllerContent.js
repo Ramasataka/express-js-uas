@@ -113,12 +113,12 @@ const addContentToMembership = async (req, res) => {
     }
 };
 
+
 const getContentForMembership = async (req, res) => {
-    const membershipId = req.params.id; // Mendapatkan ID membership dari parameter URL
-    console.log('Membership ID:', membershipId); // Log ID membership untuk debugging
+    const membershipId = req.params.id;
 
     try {
-        // Query untuk mengambil data konten membership
+        // Query untuk mengambil konten dan gambar terkait
         const getContentQuery = `
             SELECT mc.id, mc.title, mc.description, ic.img
             FROM membership_content mc
@@ -128,7 +128,7 @@ const getContentForMembership = async (req, res) => {
         
         db.query(getContentQuery, [membershipId], (err, result) => {
             if (err) {
-                console.error('Database Error:', err); // Log error jika query gagal
+                console.error('Database Error:', err)
                 return res.status(500).json({
                     success: false,
                     message: 'Gagal mengambil konten untuk membership'
@@ -142,16 +142,38 @@ const getContentForMembership = async (req, res) => {
                 });
             }
 
-            console.log('Content Data:', result); // Log hasil data yang ditemukan
+            // Mengelompokkan gambar per konten
+            const contentMap = {};
+            result.forEach(item => {
+                // Dekripsi data konten
+                const contentId = item.id;
+                if (!contentMap[contentId]) {
+                    contentMap[contentId] = {
+                        id: contentId,
+                        title: dekripsi(item.title),
+                        description: dekripsi(item.description),
+                        images: []
+                    };
+                }
+                if (item.img) {
+                    contentMap[contentId].images.push(`http://localhost:3000/uploads/content_images/${dekripsi(item.img)}`);
+                }
+            });
 
-            // Mengirimkan hasil data konten ke client
+            // Mengonversi contentMap ke array
+            const decryptedData = Object.values(contentMap);
+
+            // Log hasil data yang akan dikirim
+            console.log('Data yang akan dikirim:', decryptedData);
+
+            // Mengirimkan hasil data konten yang sudah didekripsi
             res.status(200).json({
                 success: true,
-                data: result
+                data: decryptedData
             });
         });
     } catch (err) {
-        console.error('Catch Error:', err); // Log error jika ada kesalahan dalam catch block
+        console.error('Catch Error:', err);
         res.status(500).json({
             success: false,
             message: 'Terjadi kesalahan pada server'
@@ -159,4 +181,65 @@ const getContentForMembership = async (req, res) => {
     }
 };
 
-module.exports = { addContentToMembership, getContentForMembership };
+const deleteContent = async (req, res) => {
+    const contentId = req.params.id;
+
+    try {
+        // First, delete the associated images from img_content table
+        const deleteImagesQuery = `
+            DELETE FROM img_content WHERE content_id = ?
+        `;
+        db.query(deleteImagesQuery, [contentId], (err) => {
+            if (err) {
+                console.error('Error deleting images:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error deleting images'
+                });
+            }
+
+            // Now, delete the content itself from membership_content table
+            const deleteContentQuery = `
+                DELETE FROM membership_content WHERE id = ?
+            `;
+            db.query(deleteContentQuery, [contentId], (err, result) => {
+                if (err) {
+                    console.error('Error deleting content:', err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error deleting content'
+                    });
+                }
+
+                // If content was deleted
+                if (result.affectedRows > 0) {
+                    return res.status(200).json({
+                        success: true,
+                        message: 'Content deleted successfully'
+                    });
+                } else {
+                    return res.status(404).json({
+                        success: false,
+                        message: 'Content not found'
+                    });
+                }
+            });
+        });
+    } catch (err) {
+        console.error('Server Error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+
+module.exports = { addContentToMembership, getContentForMembership, deleteContent };
+
+
+
+
+
+//npx http-server -p 5500
+

@@ -24,6 +24,8 @@ router.post('/signIn',  authController.signIn);
 
 router.post('/logout', authController.logout);
 
+router.get('/getUserData', authController.getUserData);
+
 router.get('/getMembership', verifyToken, membershipController.getMembership);
 router.get('/singleMembership/:id', verifyToken, membershipController.getSingleMembership)
 router.post('/postMembership', setUploadFolder('membership_photo'),upload.single('img'), verifyToken, membershipController.addMembership);
@@ -36,8 +38,10 @@ router.post('/create-transaction',verifyToken, midtransService.createTransaction
 
 
 router.post('/membership/:id/add-content', setUploadFolder('content_images'), upload.array('images', 10), verifyToken, contentController.addContentToMembership);
-router.get('membership-content/:id', verifyToken, contentController.getContentForMembership);
+router.get('/membership-content/:id', contentController.getContentForMembership);
 
+
+router.delete('/delete-content/:id',contentController.deleteContent);
 
 
 module.exports = router;
