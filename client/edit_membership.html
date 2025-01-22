@@ -39,6 +39,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+            const getCookie = (name) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+            };
+
+            async function checkAdmin() {
+                const authToken = getCookie('authToken');
+                const role = getCookie('role'); // 1 untuk admin, 0 untuk user biasa
+
+                if (!authToken) {
+                    // Redirect ke halaman login jika tidak ada authToken
+                    window.location.href = '/';
+                    return;
+                }
+
+                if (role !== '1') {
+                    // Redirect ke halaman member jika bukan admin
+                    alert('Access denied: You are not an admin.');
+                    window.location.href = '/member';
+                    return;
+                }
+
+
+                };
         const token = localStorage.getItem('authToken'); 
         let csrfToken = '';
 
@@ -145,7 +171,7 @@
                         title: 'Success',
                         text: result.message
                     }).then(() => {
-                        window.location.href = 'membership.html'; 
+                        window.location.href = '/membership'; 
                     });
                 } else {
                     Swal.fire({
@@ -164,6 +190,7 @@
         });
     
         window.onload = () => {
+            checkAdmin();
             getCsrfToken()
             loadMembershipData();
         };

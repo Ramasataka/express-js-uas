@@ -5,9 +5,12 @@ const xss = require('xss');
 const jwt = require('jsonwebtoken');
 const db = require('../connection'); 
 const { enkripsi } = require('../utils/encryption'); 
+const { dekripsi } = require('../utils/encryption'); // Adjust the path if needed
+
 
 // Validasi untuk Sign Up
 const validateSignUp = Joi.object({
+    
     email: Joi.string().email().max(254).required(),
     password: Joi.string()
         .min(8)
@@ -32,6 +35,7 @@ const validateSignUp = Joi.object({
     noktp: Joi.string().length(16).regex(/^\d+$/).required(),
     foto: Joi.string().optional(),
     _csrf: Joi.string(),
+    
 });
 
 // Validasi untuk Login
@@ -43,6 +47,7 @@ const validateLogin = Joi.object({
 
 // Fungsi untuk Sign Up
 const signUp = async (req, res) => {
+    console.log(req.body._csrf)
     try {
 
         // Validasi data input
@@ -115,19 +120,19 @@ const signIn = async (req, res) => {
 
             const isAdmin = user.is_admin === 1;
             const role = user.is_admin;
-            const id = user.id;
 
             const tokenPayload = {
                 email: user.email,
                 id: user.id,
+                is_admin : user.is_admin
             };
 
             
             
             // Membuat JWT
             const token = jwt.sign(tokenPayload, process.env.KUNCI_RAHASIA);
-
             res.cookie('authToken', token);
+            res.cookie('role', user.is_admin);
 
             res.status(200).json({
                 success: true,
@@ -141,10 +146,54 @@ const signIn = async (req, res) => {
     }
 };
 
+const getUserData = async (req, res) => {
+    try {
+        const query = `SELECT * FROM user`;
+        console.log('Memulai query ke database');
+        
+        db.query(query, [], (err, results) => {
+            if (err) {
+                console.error('Kesalahan database:', err);
+                return res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
+            }
+
+            console.log('Hasil query:', results);
+
+            const decryptedUsers = results.map(user => ({
+                id: user.id,
+                email: dekripsi(user.email),
+                password: user.password,
+                nama: dekripsi(user.nama),
+                nohp: dekripsi(user.nohp),
+                alamatweb: user.alamatweb ? dekripsi(user.alamatweb) : null,
+                tempatlahir: dekripsi(user.tempatlahir),
+                tanggallahir: dekripsi(user.tanggallahir),
+                kk: dekripsi(user.kk),
+                ktp: dekripsi(user.ktp),
+                foto: user.foto ? `http://localhost:3000/uploads/user_photos/${dekripsi(user.foto)}` : null,
+                is_admin: user.is_admin,
+            }));
+
+            res.status(200).json({
+                success: true,
+                message: 'Berhasil mengambil data pengguna',
+                data: decryptedUsers
+            });
+        });
+    } catch (err) {
+        console.error('Kesalahan server:', err);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
+    }
+};
+
+
+
 // Fungsi untuk Logout
 const logout = (req, res) => {
+    console.log(req.cookies)
     res.clearCookie('authToken');
+    res.clearCookie('role');
     res.status(200).json({ success: true, message: 'Logout berhasil!' });
 };
 
-module.exports = { signUp, signIn, logout };
+module.exports = { signUp, signIn, logout, getUserData };

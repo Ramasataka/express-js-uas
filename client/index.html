@@ -76,14 +76,14 @@
                         icon: 'success',
                         title: 'Selamat datang, Admin!',
                     }).then(() => {
-                        window.location.href = '/admin.html'; // Halaman Admin
+                        window.location.href = '/admin'; // Halaman Admin
                     });
                 } else if(data.role === 0) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Selamat datang, Member!',
                     }).then(() => {
-                        window.location.href = '/member.html'; // Halaman Member
+                        window.location.href = '/member'; // Halaman Member
                     });
                 }
         })

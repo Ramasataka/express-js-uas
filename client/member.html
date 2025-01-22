@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <title>Member Area</title>
   <style>
     body {
@@ -43,43 +44,205 @@
     button:hover {
       background-color: #0056b3;
     }
+    .blur {
+            filter: blur(5px);
+        }
+        .card-img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
   </style>
 </head>
 <body>
+  <div id="snap-container"></div>
   <div class="container">
     <h1>Welcome, <span id="username">User</span>!</h1>
     <p>You are now in the member area. Feel free to explore!</p>
-    <button id="logoutBtn">Logout</button>
+    
+    <form id="logoutForm" action="http://localhost:3000/api/logout" method="POST">
+      <input type="hidden" name="_csrf" id="_csrf" value="">
+      <button type="submit" id="logoutBtn">Logout</button>
+    </form>
   </div>
-  <script>
+  <div class="container">
+    <h1 class="my-4 text-center">Memberships</h1>
+    <div id="memberships-container" class="row justify-content-center"></div>
+</div>
+<script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="YOUR_CLIENT_KEY_HERE"></script>
+<script>
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  };
 
-    document.addEventListener('DOMContentLoaded', () => {
-            // Check if the authToken cookie exists
-            const getCookie = (name) => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-                };
+  async function fetchMemberships() {
+    try {
+      const response = await fetch('http://localhost:3000/api/membershipUser', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        mode: 'cors',
+      });
 
-                // Retrieve the authToken cookie
-                const cookiesAuth = getCookie("authToken");
-                console.log(cookiesAuth);
+      const data = await response.json();
+      if (data.success) {
+        const memberships = data.memberships;
+        const container = document.getElementById('memberships-container');
+        container.innerHTML = ''; // Clear the container before adding new data
 
-                if (!cookiesAuth) {
-                    window.location.href = 'index.html'; // Redirect to the login page
-                }
+        memberships.forEach((membership) => {
+        const membershipDiv = document.createElement('div');
+        membershipDiv.classList.add('card', 'w-75', 'mb-3');
 
-            });
+        let actionContent = '';
+        if (membership.status === 'not_purchased') {
+          actionContent = `<button onclick="buyMembership(${membership.membership_id})" class="btn btn-primary">Buy</button>`;
+        } else if (membership.status === 'pending') {
+          actionContent = `
+            <p class="text-warning">Payment Pending</p>
+            <a href="${membership.transaction_id}" 
+              class="btn btn-warning">Complete Payment</a>`;
+        } else if (membership.status === 'cancel') {
+          actionContent = `<p class="text-danger">Payment Canceled</p>`;
+        } else if (membership.status === 'paid') {
+          actionContent = `<p class="text-success">Purchased</p>
+        <a href="/user_membership_content.html?id=${membership.membership_id}" class="btn btn-primary">View Membership Content</a>`;
+        }
+        
+        membershipDiv.innerHTML = `
+            <div class="card-body d-flex justify-content-between">
+                <div class="d-flex align-items-center">
+                    <h5 class="card-title mb-0">${membership.nama_membership}</h5>
+                    <img src="${membership.img}" alt="${membership.nama_membership}" class="card-img mx-3">
+                </div>
+                <div>
+                    <p class="card-text">Price: ${membership.harga}</p>
+                    ${actionContent}
+                </div>
+            </div>
+        `;
+        container.appendChild(membershipDiv);
+      });
+      } else {
+        alert('Failed to fetch memberships.');
+      }
+    } catch (error) {
+      console.error('Error fetching memberships:', error);
+    }
+  }
 
-    // Handle Logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      fetch('http://localhost:3000/api/logout', { method: 'POST', credentials: 'include' })
-        .then(() => {
-          alert('You have been logged out.');
-          window.location.href = 'index.html';
-        });
+  async function buyMembership(membershipId) {
+  try {
+    const csrfToken = document.getElementById('_csrf').value; // Ambil nilai CSRF token dari input hidden
+
+    const response = await fetch('http://localhost:3000/api/transaction/createTransactionToken', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CSRF-Token': csrfToken, // Sertakan CSRF token di header
+      },
+      credentials: 'include',
+      mode: 'cors',
+      body: JSON.stringify({ membershipId, userId: getCookie('userId') }),
     });
-  </script>
+
+    const data = await response.json();
+    console.log(data)
+      if (data.success) {
+        console.log(data.token)
+        window.snap.pay(data.token, {
+        onSuccess: function (result) {
+          alert('Payment successful!');
+          console.log(result);
+          fetchMemberships(); // Refresh daftar membership
+        },
+        onPending: function (result) {
+          alert('Waiting for your payment!');
+          console.log(result);
+        },
+        onError: function (result) {
+          alert('Payment failed!');
+          console.log(result);
+        },
+        onClose: function () {
+          alert('You closed the popup without finishing the payment.');
+        },
+      });
+      } else {
+        alert('Failed to create transaction token: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error processing the payment. Please try again.');
+    }
+  }
+
+  async function getCsrfToken() {
+    try {
+      const response = await fetch('http://localhost:3000/api/csrf-token', {
+        method: 'GET',
+        credentials: 'include',
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch CSRF token');
+      }
+
+      const data = await response.json();
+      document.getElementById('_csrf').value = data.csrfToken;
+    } catch (error) {
+      console.error('Error fetching CSRF token:', error);
+    }
+  }
+
+  document.getElementById('logoutForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    try {
+      const csrfToken = document.getElementById('_csrf').value;
+
+      const response = await fetch('http://localhost:3000/api/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'CSRF-Token': csrfToken,
+        },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert('Logout successful! Redirecting to the homepage.');
+        window.location.href = 'index.html';
+      } else {
+        alert('Logout failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+      alert('Server error. Please try again later.');
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const authToken = getCookie('authToken');
+
+    if (!authToken) {
+      window.location.href = 'index.html';
+    }
+
+    getCsrfToken();
+    fetchMemberships();
+  });
+</script>
+
 </body>
 </html>
