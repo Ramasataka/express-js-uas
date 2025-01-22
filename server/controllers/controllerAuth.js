@@ -10,6 +10,7 @@ const { dekripsi } = require('../utils/encryption'); // Adjust the path if neede
 
 // Validasi untuk Sign Up
 const validateSignUp = Joi.object({
+    
     email: Joi.string().email().max(254).required(),
     password: Joi.string()
         .min(8)
@@ -32,7 +33,9 @@ const validateSignUp = Joi.object({
     }),
     nokk: Joi.string().length(16).regex(/^\d+$/).required(),
     noktp: Joi.string().length(16).regex(/^\d+$/).required(),
-    foto: Joi.string().optional()
+    foto: Joi.string().optional(),
+    _csrf: Joi.string(),
+    
 });
 
 // Validasi untuk Login
@@ -44,6 +47,7 @@ const validateLogin = Joi.object({
 
 // Fungsi untuk Sign Up
 const signUp = async (req, res) => {
+    console.log(req.body._csrf)
     try {
 
         // Validasi data input

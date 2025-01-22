@@ -10,6 +10,7 @@
 </head>
 <body>
     <div class="container mt-5">
+        <a href="membership.html"><button type="button" class="btn btn-primary">back</button></a>
         <h1>Tambah Konten pada Membership</h1>
         <form id="addContentForm" enctype="multipart/form-data">
             <input type="hidden" id="membershipId" name="membershipId">
@@ -85,7 +86,7 @@
                         title: 'Success',
                         text: result.message
                     }).then(() => {
-                        window.location.href = `membership-content.html?id=${result.data.content_id}`; // Redirect ke halaman konten
+                        window.location.href = `membership-content.html?id=${membershipId}`; 
                     });
                 } else {
                     Swal.fire({

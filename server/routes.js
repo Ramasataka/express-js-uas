@@ -34,7 +34,6 @@ router.delete('/deleteMembership/:id', verifyToken, membershipController.deleteM
 
 router.get('/membershipUser', verifyToken,userMembershipController.getMembershipsUser );
 
-router.post('/create-transaction',verifyToken, midtransService.createTransactionToken);
 
 
 router.post('/membership/:id/add-content', setUploadFolder('content_images'), upload.array('images', 10), verifyToken, contentController.addContentToMembership);
@@ -43,5 +42,8 @@ router.get('/membership-content/:id', contentController.getContentForMembership)
 
 router.delete('/delete-content/:id',contentController.deleteContent);
 
+router.post('/transaction/createTransactionToken', verifyToken, midtransService.createTransactionToken);
+
+router.get('/membership/:membershipId/content', userMembershipController.getMembershipContent);
 
 module.exports = router;

@@ -5,19 +5,21 @@ const cors = require('cors');
 const path = require('path');
 const routes = require('./routes');
 
+
 const app = express();
 const corsOptions = {
     origin: "http://localhost:5500",
     credentials: true,
   }
 
-  
 app.use(cors(corsOptions));
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 const csrfProtection = csrf({ cookie: true }); 
+
+
 app.use(csrfProtection);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api', routes);

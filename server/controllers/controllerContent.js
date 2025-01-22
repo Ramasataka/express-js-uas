@@ -160,13 +160,10 @@ const getContentForMembership = async (req, res) => {
                 }
             });
 
-            // Mengonversi contentMap ke array
             const decryptedData = Object.values(contentMap);
 
-            // Log hasil data yang akan dikirim
             console.log('Data yang akan dikirim:', decryptedData);
 
-            // Mengirimkan hasil data konten yang sudah didekripsi
             res.status(200).json({
                 success: true,
                 data: decryptedData

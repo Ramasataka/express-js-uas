@@ -70,7 +70,7 @@
 
     <script>
         const token = localStorage.getItem('authToken');  // Ambil token JWT dari localStorage
-
+        let csrfToken = '';
         // Menampilkan data konten membership ke dalam tabel
         async function loadContent() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -98,14 +98,27 @@
                             ${content.images.map(img => `<img src="${img}" alt="Content Image" width="50" height="50">`).join(' ')}
                         </td>
                         <td>
-                            <button class="btn btn-warning btn-sm" onclick="editContent(${content.id})">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteContent(${content.id})">Delete</button>
+                            <form id="deleteForm-${content.id}" method="POST" action="http://localhost:3000/api/delete-content/${content.id}" onsubmit="return handleDelete(event, ${content.id})">
+                                <input type="hidden" name="_csrf" value="${csrfToken}">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
                         </td>
                     `;
                     i++;
                     contentTableBody.appendChild(row);
                 });
             }
+        }
+
+        async function getCsrfToken() {
+            const response = await fetch('http://localhost:3000/api/csrf-token', {
+                method: 'GET',
+                credentials: 'include',
+                mode :"cors"
+            });
+
+            const data = await response.json();
+            csrfToken = data.csrfToken;
         }
 
         // Fungsi untuk menambah konten
@@ -142,51 +155,56 @@
             }
         });
 
-        // Fungsi untuk mengedit konten
-        function editContent(contentId) {
-            // Fungsi ini dapat menampilkan modal atau redirect ke halaman lain untuk mengedit konten
-            alert('Edit content with ID ' + contentId);
-        }
 
         // Fungsi untuk menghapus konten
         // Fungsi untuk menghapus konten
-    function deleteContent(contentId) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: 'This will delete the content permanently!',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`http://localhost:3000/api/delete-content/${contentId}`, {
+        async function handleDelete(event, contentId) {
+    event.preventDefault(); // Mencegah pengiriman form default
+
+    const form = document.getElementById(`deleteForm-${contentId}`);
+
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'This will delete the content permanently!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(form.action, {
                     method: 'DELETE',
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire('Deleted!', data.message, 'success');
-                        loadContent(); // Refresh content list
-                    } else {
-                        Swal.fire('Error', data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    Swal.fire('Error', 'An error occurred while deleting the content', 'error');
-                    console.error('Delete error:', error);
+                        'Content-Type': 'application/json',
+                        'XSRF-TOKEN': csrfToken, // Menggunakan token CSRF
+                    },
                 });
+
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire('Deleted!', data.message, 'success');
+                    loadContent(); // Refresh content list
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'An error occurred while deleting the content', 'error');
+                console.error('Delete error:', error);
             }
-        });
-    }
+        }
+    });
+}
 
 
         // Load content saat halaman dimuat
-        window.onload = loadContent;
+        window.onload = function() {
+            loadContent();
+            getCsrfToken();
+        };
+
     </script>
 </body>
 </html>
